@@ -1,17 +1,24 @@
 package main
 
 import (
-	"net/http"
+	"log"
 
 	"github.com/gin-gonic/gin"
+
+	"richangfan/forum/routes"
 )
 
 func main() {
 	r := gin.Default()
 
-	r.GET("/ping", func(c *gin.Context) {
-		c.String(http.StatusOK, "pong")
-	})
+	// 静态资源
+	r.Static("/dist", "./dist")
 
-	r.Run(":8080")
+	// 动态资源
+	routes.AddIndex(r.Group(""))
+	routes.AddPost(r.Group("post"))
+
+	if err := r.Run(); err != nil {
+		log.Fatalf("could not run server: %v", err)
+	}
 }
