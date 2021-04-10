@@ -1,19 +1,32 @@
 package routes
 
 import (
-	"net/http"
+	"encoding/json"
+	"richangfan/forum/tool"
 
 	"github.com/gin-gonic/gin"
 )
 
+type Post struct {
+	Title   string `json:"title"`
+	Content string `json:"content"`
+}
+
 func AddPost(rg *gin.RouterGroup) {
 	group := rg.Group("")
 
-	group.GET("", func(c *gin.Context) {
-		c.String(http.StatusOK, "post list")
-	})
-
-	group.GET("/", func(c *gin.Context) {
-		c.String(http.StatusOK, "post list")
+	group.POST("", func(c *gin.Context) {
+		raw, err := c.GetRawData()
+		if err != nil {
+			tool.SendErrorJson(c, err.Error())
+			return
+		}
+		var p Post
+		err = json.Unmarshal(raw, &p)
+		if err != nil {
+			tool.SendErrorJson(c, err.Error())
+			return
+		}
+		tool.SendSuccessJson(c, nil)
 	})
 }

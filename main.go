@@ -18,7 +18,8 @@ func main() {
 	routes.AddIndex(r.Group(""))
 	routes.AddPost(r.Group("post"))
 
-	if err := r.Run(); err != nil {
+	err := r.Run()
+	if err != nil {
 		log.Fatalf("could not run server: %v", err)
 	}
 }
