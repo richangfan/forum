@@ -18,6 +18,7 @@ func AddPost(rg *gin.RouterGroup) {
 	group := rg.Group("")
 
 	group.POST("", func(c *gin.Context) {
+		checkLogin(c)
 		raw, err := c.GetRawData()
 		if err != nil {
 			sendErrorJson(c, err.Error())
