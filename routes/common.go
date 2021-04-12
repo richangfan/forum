@@ -57,11 +57,3 @@ func getPage(c *gin.Context) (int, error) {
 	}
 	return page, nil
 }
-
-func checkLogin(c *gin.Context) {
-	raw := c.Query("token")
-	if raw == "" {
-		c.AbortWithStatus(http.StatusUnauthorized)
-		return
-	}
-}
