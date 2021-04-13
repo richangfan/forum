@@ -6,8 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"math/rand"
 	"net/http"
+	"richangfan/forum/model"
 	"strconv"
 	"strings"
 
@@ -17,13 +17,13 @@ import (
 type User struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
-	Status   int `json:"status"`
+	Status   int    `json:"status"`
 	Password string `json:"password"`
 	Code     string `json:"code"`
 	Register string `json:"register"`
-	Login string `json:"login"`
-	Logout string `json:"logout"`
-	Token string `json:"token"`
+	Login    string `json:"login"`
+	Logout   string `json:"logout"`
+	Token    string `json:"token"`
 }
 
 type Token struct {
@@ -45,13 +45,13 @@ func CheckLogin(c *gin.Context) User {
 			token.Key = arr[0]
 			token.Sum = arr[1]
 			ctx := context.Background()
-			client := GetRedisClient()
-			cache, err := client.Get(ctx, TOKEN_CACHE_PREFIX+token.Key).Result()
+			rdb := GetRedisClient()
+			cache, err := rdb.Get(ctx, USER_CACHE_PREFIX+token.Key).Result()
 			if err == nil {
 				var user User
 				err = json.Unmarshal([]byte(cache), &user)
 				if err == nil {
-					if token.Value == (generateToken(user)).Value {
+					if token.Value == user.Token {
 						return user
 					}
 				}
@@ -71,32 +71,25 @@ func Register(user *User) error {
 	if plen <= 0 || plen > 64 {
 		return errors.New("密码长度错误")
 	}
-	if err := validateInvitationCode(user.Code); err != nil {
-		return err
+	err := validateInvitationCode(user.Code)
+	if err == nil {
+		var usermodel model.User
+		err := usermodel.AddUser(user.Name, user.Password)
+		if err == nil {
+			user.Id = int(usermodel.Id)
+			user.Register = usermodel.Regtime
+			user.Login = usermodel.Regtime
+			user.Token = generateToken(*user).Value
+			value, err := json.Marshal(user)
+			if err == nil {
+				rdb := GetRedisClient()
+				_, err = rdb.Set(context.Background(), USER_CACHE_PREFIX+strconv.Itoa(user.Id), value, 0).Result()
+				if err == nil {
+					return nil
+				}
+			}
+		}
 	}
-	// user.Password, err = bcrypt.Gen
-	return nil
-}
-
-func Login(user User) (string, error) {
-	text, err := json.Marshal(user)
-	if err != nil {
-		return "", err
-	}
-	token := generateToken(user)
-	ctx := context.Background()
-	client := GetRedisClient()
-	_, err = client.Set(ctx, TOKEN_CACHE_PREFIX+token.Key, text, 0).Result()
-	if err != nil {
-		return "", err
-	}
-	return token.Value, nil
-}
-
-func Logout(user User) error {
-	ctx := context.Background()
-	client := GetRedisClient()
-	_, err := client.Del(ctx, TOKEN_CACHE_PREFIX+strconv.Itoa(user.Id)).Result()
 	return err
 }
 
@@ -104,7 +97,7 @@ func generateToken(user User) Token {
 	var token Token
 	token.Key = strconv.Itoa(user.Id)
 	h := md5.New()
-	h.Write([]byte(user.Name + user.Created))
+	h.Write([]byte(user.Name + user.Register))
 	sum := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	h.Reset()
 	h.Write([]byte(TOKEN_MD5_SALT + sum))
@@ -113,7 +106,7 @@ func generateToken(user User) Token {
 	return token
 }
 
-validateInvitationCode(code string) err {
+func validateInvitationCode(code string) error {
 	if code != "invitecode123456" {
 		return errors.New("邀请码错误")
 	}

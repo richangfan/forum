@@ -16,10 +16,8 @@ func AddUserRoute(rg *gin.RouterGroup) {
 		if err == nil {
 			if err = json.Unmarshal(raw, &user); err == nil {
 				if err = middleware.Register(&user); err == nil {
-					if token, err := middleware.Login(user); err == nil {
-						sendSuccessJson(c, user)
-						return
-					}
+					sendSuccessJson(c, user)
+					return
 				}
 			}
 		}

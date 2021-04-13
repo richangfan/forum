@@ -2,7 +2,6 @@ package routes
 
 import (
 	"encoding/json"
-	"fmt"
 	"richangfan/forum/middleware"
 	"time"
 	"unicode/utf8"
@@ -45,56 +44,55 @@ func AddPostRoute(rg *gin.RouterGroup) {
 			}
 		}
 		sendErrorJson(c, err.Error())
-		return
 	})
 
 	group.GET("list", func(c *gin.Context) {
-		page, err := getPage(c)
-		if err == nil {
-			db, err := middleware.GetMySQLClient()
-			if err == nil {
-				defer db.Close()
-				stmt, err := db.Prepare("SELECT count(*) AS total FROM post")
-				if err == nil {
-					defer stmt.Close()
-					res, err := stmt.Exec()
-					if err == nil {
-						var start, end int64
-						if total == 0 {
-							sendSuccessJson(c, PostList{List: List{PAGE_SIZE, 1, 0, nil}})
-							return
-						} else if total <= int64((page-1)*PAGE_SIZE) {
-							sendSuccessJson(c, PostList{List: List{PAGE_SIZE, page, total, nil}})
-							return
-						} else {
-							start = int64((page-1)*PAGE_SIZE + 1)
-							if total <= int64(page*PAGE_SIZE) {
-								end = total
-							} else {
-								end = int64(page * PAGE_SIZE)
-							}
-						}
-						raw, err := client.LRange(ctx, CACHE_POST, start-1, end-1).Result()
-						if err != nil {
-							fmt.Println(err.Error())
-							return
-						}
-						var data = make([]Post, end-start+1)
-						for i, v := range raw {
-							var p Post
-							err = json.Unmarshal([]byte(v), &p)
-							if err != nil {
-								sendErrorJson(c, err.Error())
-								return
-							}
-							data[i] = p
-						}
-						sendSuccessJson(c, PostList{List: List{PAGE_SIZE, page, total, data}})
-					}
-				}
-			}
-		}
-		sendErrorJson(c, err.Error())
-		return
+		// page, err := getPage(c)
+		// if err == nil {
+		// 	db, err := middleware.GetMySQLClient()
+		// 	if err == nil {
+		// 		defer db.Close()
+		// 		stmt, err := db.Prepare("SELECT count(*) AS total FROM post")
+		// 		if err == nil {
+		// 			defer stmt.Close()
+		// 			res, err := stmt.Query()
+		// 			if err == nil {
+		// 				var start, end int64
+		// 				if total == 0 {
+		// 					sendSuccessJson(c, PostList{List: List{PAGE_SIZE, 1, 0, nil}})
+		// 					return
+		// 				} else if total <= int64((page-1)*PAGE_SIZE) {
+		// 					sendSuccessJson(c, PostList{List: List{PAGE_SIZE, page, total, nil}})
+		// 					return
+		// 				} else {
+		// 					start = int64((page-1)*PAGE_SIZE + 1)
+		// 					if total <= int64(page*PAGE_SIZE) {
+		// 						end = total
+		// 					} else {
+		// 						end = int64(page * PAGE_SIZE)
+		// 					}
+		// 				}
+		// 				raw, err := client.LRange(ctx, CACHE_POST, start-1, end-1).Result()
+		// 				if err != nil {
+		// 					fmt.Println(err.Error())
+		// 					return
+		// 				}
+		// 				var data = make([]Post, end-start+1)
+		// 				for i, v := range raw {
+		// 					var p Post
+		// 					err = json.Unmarshal([]byte(v), &p)
+		// 					if err != nil {
+		// 						sendErrorJson(c, err.Error())
+		// 						return
+		// 					}
+		// 					data[i] = p
+		// 				}
+		// 				sendSuccessJson(c, PostList{List: List{PAGE_SIZE, page, total, data}})
+		// 			}
+		// 		}
+		// 	}
+		// }
+		// sendErrorJson(c, err.Error())
+		// return
 	})
 }
