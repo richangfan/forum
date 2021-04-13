@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func AddIndex(rg *gin.RouterGroup) {
+func AddIndexRoute(rg *gin.RouterGroup) {
 	group := rg.Group("")
 
 	group.GET("", func(c *gin.Context) {

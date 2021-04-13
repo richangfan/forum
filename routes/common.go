@@ -24,9 +24,6 @@ type List struct {
 // 默认页面列表长度
 const PAGE_SIZE = 10
 
-// 帖子列表在缓存中的key
-const CACHE_POST = "post"
-
 func sendErrorJson(c *gin.Context, m string) {
 	c.JSON(http.StatusOK, Result{
 		"error":   1,

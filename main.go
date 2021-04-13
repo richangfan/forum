@@ -21,8 +21,9 @@ func main() {
 	r.Static("/dist", "./dist")
 
 	// 动态资源
-	routes.AddIndex(r.Group(""))
-	routes.AddPost(r.Group("post"))
+	routes.AddIndexRoute(r.Group(""))
+	routes.AddUserRoute(r.Group("user"))
+	routes.AddPostRoute(r.Group("post"))
 
 	srv := &http.Server{
 		Addr:    ":8088",

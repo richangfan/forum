@@ -17,9 +17,13 @@ import (
 type User struct {
 	Id       int    `json:"id"`
 	Name     string `json:"name"`
+	Status   int `json:"status"`
 	Password string `json:"password"`
 	Code     string `json:"code"`
-	Created  string `json:"created"`
+	Register string `json:"register"`
+	Login string `json:"login"`
+	Logout string `json:"logout"`
+	Token string `json:"token"`
 }
 
 type Token struct {
@@ -30,9 +34,7 @@ type Token struct {
 
 const TOKEN_MD5_SALT = "FOI2JF28039joijo"
 
-const TOKEN_CACHE_PREFIX = "user_token_"
-
-const INVITE_CODE_CACHE = "invite_code"
+const USER_CACHE_PREFIX = "user_"
 
 func CheckLogin(c *gin.Context) User {
 	var token Token
@@ -60,6 +62,22 @@ func CheckLogin(c *gin.Context) User {
 	return User{}
 }
 
+func Register(user *User) error {
+	nlen := len(user.Name)
+	if nlen <= 0 || nlen > 16 {
+		return errors.New("用户名长度错误")
+	}
+	plen := len(user.Password)
+	if plen <= 0 || plen > 64 {
+		return errors.New("密码长度错误")
+	}
+	if err := validateInvitationCode(user.Code); err != nil {
+		return err
+	}
+	// user.Password, err = bcrypt.Gen
+	return nil
+}
+
 func Login(user User) (string, error) {
 	text, err := json.Marshal(user)
 	if err != nil {
@@ -82,38 +100,6 @@ func Logout(user User) error {
 	return err
 }
 
-func Register(user *User) error {
-	nlen := len(user.Name)
-	if nlen <= 0 || nlen > 16 {
-		return errors.New("用户名长度错误")
-	}
-	plen := len(user.Password)
-	if plen <= 0 || plen > 64 {
-		return errors.New("密码长度错误")
-	}
-	ctx := context.Background()
-	client := GetRedisClient()
-	cache, err := client.Get(ctx, INVITE_CODE_CACHE).Result()
-	if err != nil {
-		return err
-	}
-	if cache != user.Code {
-		return errors.New("邀请码错误")
-	}
-	for {
-		user.Id = rand.Int()
-		cache, err = client.Get(ctx, TOKEN_CACHE_PREFIX+strconv.Itoa(user.Id)).Result()
-		if err != nil {
-			return nil
-		}
-		if len(cache) == 0 {
-			break
-		}
-	}
-	// TODO
-	return nil
-}
-
 func generateToken(user User) Token {
 	var token Token
 	token.Key = strconv.Itoa(user.Id)
@@ -125,4 +111,11 @@ func generateToken(user User) Token {
 	token.Sum = base64.StdEncoding.EncodeToString(h.Sum(nil))
 	token.Value = token.Key + token.Sum
 	return token
+}
+
+validateInvitationCode(code string) err {
+	if code != "invitecode123456" {
+		return errors.New("邀请码错误")
+	}
+	return nil
 }

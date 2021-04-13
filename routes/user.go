@@ -7,12 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type LoginUser struct {
-	Token string          `json:"token"`
-	User  middleware.User `json:"user"`
-}
-
-func AddUser(rg *gin.RouterGroup) {
+func AddUserRoute(rg *gin.RouterGroup) {
 	group := rg.Group("")
 
 	group.POST("register", func(c *gin.Context) {
@@ -22,7 +17,7 @@ func AddUser(rg *gin.RouterGroup) {
 			if err = json.Unmarshal(raw, &user); err == nil {
 				if err = middleware.Register(&user); err == nil {
 					if token, err := middleware.Login(user); err == nil {
-						sendSuccessJson(c, LoginUser{token, user})
+						sendSuccessJson(c, user)
 						return
 					}
 				}
