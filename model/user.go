@@ -15,6 +15,8 @@ type User struct {
 }
 
 func (user User) AddUser(name string, password string) error {
+	// TODO
+	// 检查重名
 	user.Name = name
 	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err == nil {
