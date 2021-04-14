@@ -3,6 +3,7 @@ package routes
 import (
 	"encoding/json"
 	"richangfan/forum/middleware"
+	"richangfan/forum/model"
 	"time"
 	"unicode/utf8"
 
@@ -17,7 +18,7 @@ func AddPostRoute(rg *gin.RouterGroup) {
 	group := rg.Group("")
 
 	group.POST("create", func(c *gin.Context) {
-		user := middleware.CheckLogin(c)
+		user := model.CheckLogin(c)
 		raw, err := c.GetRawData()
 		if err == nil {
 			var p Post
@@ -29,7 +30,7 @@ func AddPostRoute(rg *gin.RouterGroup) {
 					sendErrorJson(c, "输入出错")
 					return
 				}
-				db, err := middleware.GetMySQLClient()
+				db, err := middleware.GetMysqlClient()
 				if err == nil {
 					defer db.Close()
 					stmt, err := db.Prepare("INSERT INTO post (user_id, title, content, created) VALUES (?, ?, ?, ?)")
