@@ -14,7 +14,7 @@ type User struct {
 	Regtime  string
 }
 
-func (user User) AddUser(name string, password string) error {
+func (user *User) AddUser(name string, password string) error {
 	// TODO
 	// 检查重名
 	user.Name = name

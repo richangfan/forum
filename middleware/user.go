@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"richangfan/forum/model"
 	"strconv"
@@ -15,15 +16,15 @@ import (
 )
 
 type User struct {
-	Id       int    `json:"id"`
-	Name     string `json:"name"`
-	Status   int    `json:"status"`
-	Password string `json:"password"`
-	Code     string `json:"code"`
-	Register string `json:"register"`
-	Login    string `json:"login"`
-	Logout   string `json:"logout"`
-	Token    string `json:"token"`
+	Id         int    `json:"id"`
+	Name       string `json:"name"`
+	Status     int    `json:"status"`
+	Password   string `json:"password"`
+	Code       string `json:"code"`
+	Regtime    string `json:"regtime"`
+	Logintime  string `json:"logintime"`
+	Logouttime string `json:"logouttime"`
+	Token      string `json:"token"`
 }
 
 type Token struct {
@@ -76,9 +77,10 @@ func Register(user *User) error {
 		var usermodel model.User
 		err := usermodel.AddUser(user.Name, user.Password)
 		if err == nil {
+			fmt.Println(usermodel.Id)
 			user.Id = int(usermodel.Id)
-			user.Register = usermodel.Regtime
-			user.Login = usermodel.Regtime
+			user.Regtime = usermodel.Regtime
+			user.Logintime = usermodel.Regtime
 			user.Token = generateToken(*user).Value
 			value, err := json.Marshal(user)
 			if err == nil {
@@ -97,12 +99,12 @@ func generateToken(user User) Token {
 	var token Token
 	token.Key = strconv.Itoa(user.Id)
 	h := md5.New()
-	h.Write([]byte(user.Name + user.Register))
+	h.Write([]byte(user.Name + user.Regtime))
 	sum := base64.StdEncoding.EncodeToString(h.Sum(nil))
 	h.Reset()
 	h.Write([]byte(TOKEN_MD5_SALT + sum))
 	token.Sum = base64.StdEncoding.EncodeToString(h.Sum(nil))
-	token.Value = token.Key + token.Sum
+	token.Value = token.Key + "_" + token.Sum
 	return token
 }
 
