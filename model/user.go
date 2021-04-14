@@ -37,32 +37,32 @@ type Token struct {
 	Value string
 }
 
-func (user *User) GetByName() error {
+func GetUserByName(name string) (User, error) {
+	if name == "" {
+		return User{}, errors.New("未填写用户名")
+	}
 	db, err := middleware.GetMysqlClient()
-	if err == nil {
-		defer db.Close()
-		stmt, err := db.Prepare("SELECT * FROM user WHERE name = ?")
-		if err == nil {
-			defer stmt.Close()
-			err = stmt.QueryRow(user.Name).Scan(user)
-			if err == nil {
-				return nil
-			}
-		}
+	if err != nil {
+		return User{}, err
 	}
-	return errors.New("找不到用户")
+	defer db.Close()
+	stmt, err := db.Prepare("SELECT * FROM user WHERE name = ?")
+	if err != nil {
+		return User{}, err
+	}
+	defer stmt.Close()
+	var user User
+	err = stmt.QueryRow(name).Scan(&user.Id, &user.Name, &user.Status, &user.Password, &user.Regtime)
+	if err != nil {
+		return User{}, err
+	}
+	if user.Id == 0 {
+		return User{}, errors.New("找不到用户")
+	}
+	return user, nil
 }
 
-func (user User) ValidatePassword(password string, passwordHash string) bool {
-	err := bcrypt.CompareHashAndPassword([]byte(passwordHash), []byte(password))
-	if err == nil {
-		return true
-	} else {
-		return false
-	}
-}
-
-func CheckLogin(c *gin.Context) User {
+func GetUserByToken(c *gin.Context) User {
 	var token Token
 	token.Value = c.Query("token")
 	if token.Value != "" {
@@ -100,42 +100,48 @@ func (user *User) Register() error {
 	if user.Code != "invitecode123456" {
 		return errors.New("邀请码错误")
 	}
-	// TODO
-	// 检查重名
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	_, err := GetUserByName(user.Name)
 	if err == nil {
-		user.Password = string(hash)
-		user.Regtime = time.Now().String()[0:19]
-		db, err := middleware.GetMysqlClient()
-		if err == nil {
-			defer db.Close()
-			stmt, err := db.Prepare("INSERT INTO user (name, password, regtime) VALUES(?, ?, ?)")
-			if err == nil {
-				defer stmt.Close()
-				res, err := stmt.Exec(user.Name, user.Password, user.Regtime)
-				if err == nil {
-					user.Id, err = res.LastInsertId()
-					if err == nil {
-						user.Password = ""
-						user.Code = ""
-						user.Logintime = user.Regtime
-						token, err := generateToken(*user)
-						if err == nil {
-							user.Token = token.Value
-							value, err := json.Marshal(user)
-							if err == nil {
-								rdb := middleware.GetRedisClient()
-								_, err = rdb.Set(context.Background(), USER_CACHE_PREFIX+strconv.FormatInt(user.Id, 10), value, 0).Result()
-								if err == nil {
-									return nil
-								}
-							}
-						}
-					}
-				}
-			}
-		}
+		return errors.New("用户名重复")
 	}
+	passwordHash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	if err != nil {
+		return err
+	}
+	user.Password = string(passwordHash)
+	user.Regtime = time.Now().String()[0:19]
+	db, err := middleware.GetMysqlClient()
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+	stmt, err := db.Prepare("INSERT INTO user (name, password, regtime) VALUES(?, ?, ?)")
+	if err != nil {
+		return err
+	}
+	defer stmt.Close()
+	res, err := stmt.Exec(user.Name, user.Password, user.Regtime)
+	if err != nil {
+		return err
+	}
+	user.Id, err = res.LastInsertId()
+	if err != nil {
+		return err
+	}
+	user.Password = ""
+	user.Code = ""
+	user.Logintime = user.Regtime
+	token, err := generateToken(*user)
+	if err != nil {
+		return err
+	}
+	user.Token = token.Value
+	value, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+	rdb := middleware.GetRedisClient()
+	_, err = rdb.Set(context.Background(), USER_CACHE_PREFIX+strconv.FormatInt(user.Id, 10), value, 0).Result()
 	return err
 }
 
@@ -143,25 +149,30 @@ func (user *User) Login() error {
 	if user.Name == "" || user.Password == "" {
 		return errors.New("用户名或密码错误")
 	}
-	var usermodel User
-	err := usermodel.GetByName()
-	if err == nil {
-		if usermodel.ValidatePassword(user.Password, usermodel.Password) {
-			user.Id = usermodel.Id
-			user.Name = usermodel.Name
-			user.Status = usermodel.Status
-			user.Password = ""
-			user.Regtime = usermodel.Regtime
-			user.Logintime = time.Now().String()[0:19]
-			token, err := generateToken(*user)
-			if err == nil {
-				user.Token = token.Value
-				return nil
-			}
-		} else {
-			return errors.New("用户名或密码错误")
-		}
+	usermodel, err := GetUserByName(user.Name)
+	if err != nil {
+		return err
 	}
+	if bcrypt.CompareHashAndPassword([]byte(usermodel.Password), []byte(user.Password)) != nil {
+		return errors.New("用户名或密码错误")
+	}
+	user.Id = usermodel.Id
+	user.Name = usermodel.Name
+	user.Status = usermodel.Status
+	user.Password = ""
+	user.Regtime = usermodel.Regtime
+	user.Logintime = time.Now().String()[0:19]
+	token, err := generateToken(*user)
+	if err != nil {
+		return err
+	}
+	user.Token = token.Value
+	value, err := json.Marshal(user)
+	if err != nil {
+		return err
+	}
+	rdb := middleware.GetRedisClient()
+	_, err = rdb.Set(context.Background(), USER_CACHE_PREFIX+strconv.FormatInt(user.Id, 10), value, 0).Result()
 	return err
 }
 

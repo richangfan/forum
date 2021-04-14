@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-type PostList struct {
+type PostResult struct {
 	List List `json:"list"`
 }
 
@@ -18,7 +18,7 @@ func AddPostRoute(rg *gin.RouterGroup) {
 	group := rg.Group("")
 
 	group.POST("create", func(c *gin.Context) {
-		user := model.CheckLogin(c)
+		user := model.GetUserByToken(c)
 		raw, err := c.GetRawData()
 		if err == nil {
 			var p Post
@@ -60,10 +60,10 @@ func AddPostRoute(rg *gin.RouterGroup) {
 		// 			if err == nil {
 		// 				var start, end int64
 		// 				if total == 0 {
-		// 					sendSuccessJson(c, PostList{List: List{PAGE_SIZE, 1, 0, nil}})
+		// 					sendSuccessJson(c, PostResult{List: List{PAGE_SIZE, 1, 0, nil}})
 		// 					return
 		// 				} else if total <= int64((page-1)*PAGE_SIZE) {
-		// 					sendSuccessJson(c, PostList{List: List{PAGE_SIZE, page, total, nil}})
+		// 					sendSuccessJson(c, PostResult{List: List{PAGE_SIZE, page, total, nil}})
 		// 					return
 		// 				} else {
 		// 					start = int64((page-1)*PAGE_SIZE + 1)
@@ -88,7 +88,7 @@ func AddPostRoute(rg *gin.RouterGroup) {
 		// 					}
 		// 					data[i] = p
 		// 				}
-		// 				sendSuccessJson(c, PostList{List: List{PAGE_SIZE, page, total, data}})
+		// 				sendSuccessJson(c, PostResult{List: List{PAGE_SIZE, page, total, data}})
 		// 			}
 		// 		}
 		// 	}

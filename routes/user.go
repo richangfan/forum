@@ -7,6 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+type UserResult struct {
+	User model.User `json:"user"`
+}
+
 func AddUserRoute(rg *gin.RouterGroup) {
 	group := rg.Group("")
 
@@ -16,7 +20,7 @@ func AddUserRoute(rg *gin.RouterGroup) {
 		if err == nil {
 			if err = json.Unmarshal(raw, &user); err == nil {
 				if err = user.Register(); err == nil {
-					sendSuccessJson(c, user)
+					sendSuccessJson(c, UserResult{user})
 					return
 				}
 			}
@@ -30,7 +34,7 @@ func AddUserRoute(rg *gin.RouterGroup) {
 		if err == nil {
 			if err = json.Unmarshal(raw, &user); err == nil {
 				if err = user.Login(); err == nil {
-					sendSuccessJson(c, user)
+					sendSuccessJson(c, UserResult{user})
 					return
 				}
 			}
