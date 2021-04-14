@@ -7,9 +7,9 @@ import (
 	"encoding/json"
 	"errors"
 	"richangfan/forum/middleware"
+	"richangfan/forum/tool"
 	"strconv"
 	"strings"
-	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -109,7 +109,7 @@ func (user *User) Register() error {
 		return err
 	}
 	user.Password = string(passwordHash)
-	user.Regtime = time.Now().String()[0:19]
+	user.Regtime = tool.GetCurrentDateTime()
 	db, err := middleware.GetMysqlClient()
 	if err != nil {
 		return err
@@ -161,7 +161,7 @@ func (user *User) Login() error {
 	user.Status = usermodel.Status
 	user.Password = ""
 	user.Regtime = usermodel.Regtime
-	user.Logintime = time.Now().String()[0:19]
+	user.Logintime = tool.GetCurrentDateTime()
 	token, err := generateToken(*user)
 	if err != nil {
 		return err

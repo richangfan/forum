@@ -54,6 +54,6 @@ func AddUserRoute(rg *gin.RouterGroup) {
 			sendErrorJson(c, err.Error())
 			return
 		}
-		sendSuccessJson(c, "")
+		sendSuccessJson(c, nil)
 	})
 }
