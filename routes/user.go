@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"net/http"
 	"richangfan/forum/model"
 
 	"github.com/gin-gonic/gin"
@@ -43,5 +44,16 @@ func AddUserRoute(rg *gin.RouterGroup) {
 	})
 
 	group.GET("logout", func(c *gin.Context) {
+		user, err := model.GetUserByToken(c.Query("token"))
+		if err != nil {
+			c.String(http.StatusUnauthorized, err.Error())
+			return
+		}
+		err = user.Logout()
+		if err != nil {
+			sendErrorJson(c, err.Error())
+			return
+		}
+		sendSuccessJson(c, "")
 	})
 }

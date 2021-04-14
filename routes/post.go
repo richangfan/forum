@@ -2,6 +2,7 @@ package routes
 
 import (
 	"encoding/json"
+	"net/http"
 	"richangfan/forum/middleware"
 	"richangfan/forum/model"
 	"time"
@@ -18,7 +19,11 @@ func AddPostRoute(rg *gin.RouterGroup) {
 	group := rg.Group("")
 
 	group.POST("create", func(c *gin.Context) {
-		user := model.GetUserByToken(c)
+		user, err := model.GetUserByToken(c.Query("token"))
+		if err != nil {
+			c.AbortWithStatus(http.StatusUnauthorized)
+			return
+		}
 		raw, err := c.GetRawData()
 		if err == nil {
 			var p Post

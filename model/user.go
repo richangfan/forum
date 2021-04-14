@@ -6,13 +6,11 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
-	"net/http"
 	"richangfan/forum/middleware"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -62,30 +60,32 @@ func GetUserByName(name string) (User, error) {
 	return user, nil
 }
 
-func GetUserByToken(c *gin.Context) User {
+func GetUserByToken(tokenValue string) (User, error) {
 	var token Token
-	token.Value = c.Query("token")
-	if token.Value != "" {
-		arr := strings.Split(token.Value, "_")
-		if len(arr) == 2 {
-			token.Key = arr[0]
-			token.Sum = arr[1]
-			ctx := context.Background()
-			rdb := middleware.GetRedisClient()
-			cache, err := rdb.Get(ctx, USER_CACHE_PREFIX+token.Key).Result()
-			if err == nil {
-				var user User
-				err = json.Unmarshal([]byte(cache), &user)
-				if err == nil {
-					if token.Value == user.Token {
-						return user
-					}
-				}
-			}
-		}
+	token.Value = tokenValue
+	if token.Value == "" {
+		return User{}, errors.New("token不存在")
 	}
-	c.AbortWithStatus(http.StatusUnauthorized)
-	return User{}
+	temp := strings.Split(token.Value, "_")
+	if len(temp) != 2 {
+		return User{}, errors.New("token格式错误")
+	}
+	token.Key = temp[0]
+	token.Sum = temp[1]
+	rdb := middleware.GetRedisClient()
+	cache, err := rdb.Get(context.Background(), USER_CACHE_PREFIX+token.Key).Result()
+	if err != nil {
+		return User{}, errors.New("token无效")
+	}
+	var user User
+	err = json.Unmarshal([]byte(cache), &user)
+	if err != nil {
+		return User{}, err
+	}
+	if token.Value != user.Token {
+		return User{}, errors.New("token不匹配")
+	}
+	return user, nil
 }
 
 func (user *User) Register() error {
@@ -173,6 +173,12 @@ func (user *User) Login() error {
 	}
 	rdb := middleware.GetRedisClient()
 	_, err = rdb.Set(context.Background(), USER_CACHE_PREFIX+strconv.FormatInt(user.Id, 10), value, 0).Result()
+	return err
+}
+
+func (user User) Logout() error {
+	rdb := middleware.GetRedisClient()
+	_, err := rdb.Del(context.Background(), USER_CACHE_PREFIX+strconv.FormatInt(user.Id, 10)).Result()
 	return err
 }
 
