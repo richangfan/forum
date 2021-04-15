@@ -53,11 +53,11 @@ func AddPostRoute(rg *gin.RouterGroup) {
 			sendErrorJson(c, err.Error())
 			return
 		}
-		list, err := post.GetList(pagination.Start, pagination.End)
+		list, err := post.GetList(pagination.Limit, pagination.Offset)
 		if err != nil {
 			sendErrorJson(c, err.Error())
 			return
 		}
-		sendSuccessJson(c, PostResult{List: List{pagination.PageSize, pagination.Page, total, list}})
+		sendSuccessJson(c, PostResult{List{pagination.Limit, pagination.Page, total, list}})
 	})
 }
